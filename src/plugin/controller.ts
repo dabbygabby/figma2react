@@ -20,26 +20,30 @@ figma.ui.onmessage = (msg) => {
 //function to recursively check for children and get their styles
 var tree = {};
 const getTree = (node: SceneNode) => {
-    var mytree = RecursiveStyle(node);
+    var mytree = GetRawTree(node);
     console.log('mytree', mytree);
 };
 
-function RecursiveStyle(node: SceneNode) {
+function GetRawTree(node: SceneNode) {
     if ((node.type === 'INSTANCE' || node.type === 'FRAME') && node.children) {
         // var level = 0
-        tree[`${node.name}-${node.id}`] = _.map(node.children, (node: SceneNode) => {
+        if (tree[`${node.name}-${node.id}`] === undefined) {
+            tree[`${node.name}-${node.id}`] = {};
+        }
+        tree[`${node.name}-${node.id}`]['children'] = _.map(node.children, (node: SceneNode) => {
             return {name: `${node.name}-${node.id}`, id: node.id};
         });
+        tree[`${node.name}-${node.id}`]['id'] = node.id;
         for (let child of node.children) {
-            if ((child.type === 'INSTANCE' || child.type === 'FRAME') && child.children) {
-                tree[`${child.name}-${child.id}`] = _.map(child.children, (child: SceneNode) => {
-                    return {name: `${child.name}-${child.id}`, id: child.id};
-                });
-                RecursiveStyle(child);
-            }
+            GetRawTree(child);
         }
+    } else {
+        if (tree[`${node.name}-${node.id}`] === undefined) {
+            tree[`${node.name}-${node.id}`] = {};
+        }
+        tree[`${node.name}-${node.id}`]['id'] = node.id;
+        tree[`${node.name}-${node.id}`]['children'] = [];
     }
-    // console.log("tree ", tree)
     return tree;
 }
 
