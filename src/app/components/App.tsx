@@ -1,6 +1,6 @@
 import * as React from 'react';
 import '../styles/ui.css';
-
+// import figma from 'figma-plugin-api';
 declare function require(path: string): any;
 
 const App = ({}) => {
