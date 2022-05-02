@@ -1,11 +1,34 @@
-import _ from 'lodash';
+import {filter, map, uniqBy} from 'lodash';
 
 figma.showUI(__html__);
 
 figma.ui.onmessage = (msg) => {
     if (msg.type === 'create-rectangles') {
         let node = figma.currentPage.selection[0];
-        getTree(node);
+        var myNodes = getNodes(node);
+        console.log('all nodes ', myNodes);
+
+        var parsedNodes = map(myNodes, (child) => {
+            return {
+                name: child.name,
+                id: child.id,
+                parent: {
+                    id: child.parent.id,
+                    name: child.parent.name,
+                },
+                children: child.children === undefined ? [] : child.children,
+            };
+        });
+
+        console.log('parsed nodes ', parsedNodes);
+        var parentList = getAllParentValue(parsedNodes, node);
+        console.log('parent list ', parentList);
+
+        var treeList = getParentTrees(parentList, parsedNodes);
+        console.log('tree list ', treeList);
+
+        var finalTree = createTree(treeList);
+        console.log('tree ', finalTree);
 
         // This is how figma responds back to the ui
         figma.ui.postMessage({
@@ -16,36 +39,128 @@ figma.ui.onmessage = (msg) => {
 
     figma.closePlugin();
 };
+//function to return parsed tree of nodes
+function getNodes(node) {
+    let nodes = [];
+    if (node.children) {
+        for (let i = 0; i < node.children.length; i++) {
+            nodes.push(node.children[i]);
+            nodes = nodes.concat(getNodes(node.children[i]));
+        }
+    }
+    return nodes;
+}
 
-//function to recursively check for children and get their styles
-var tree = {};
-const getTree = (node: SceneNode) => {
-    var mytree = GetRawTree(node);
-    console.log('mytree', mytree);
+const getAllParentValue = (nodeList, node) => {
+    let parentList = [{name: node.name, id: node.id, isRoot: true}];
+    for (let i = 0; i < nodeList.length; i++) {
+        parentList.push({name: nodeList[i].parent.name, id: nodeList[i].parent.id, isRoot: false});
+    }
+    //make a set of parent values
+    var uniqueParents = uniqBy(parentList, 'id');
+
+    return uniqueParents;
 };
 
-function GetRawTree(node: SceneNode) {
-    if ((node.type === 'INSTANCE' || node.type === 'FRAME') && node.children) {
-        // var level = 0
-        if (tree[`${node.name}-${node.id}`] === undefined) {
-            tree[`${node.name}-${node.id}`] = {};
-        }
-        tree[`${node.name}-${node.id}`]['children'] = _.map(node.children, (node: SceneNode) => {
-            return {name: `${node.name}-${node.id}`, id: node.id};
+const getParentTrees = (ParentList, nodeList) => {
+    var subtrees = [];
+    for (let i = 0; i < ParentList.length; i++) {
+        var currentParent = ParentList[i];
+        var childrenNodes = filter(nodeList, (o) => {
+            return o.parent.id === currentParent.id;
         });
-        tree[`${node.name}-${node.id}`]['id'] = node.id;
-        for (let child of node.children) {
-            GetRawTree(child);
-        }
-    } else {
-        if (tree[`${node.name}-${node.id}`] === undefined) {
-            tree[`${node.name}-${node.id}`] = {};
-        }
-        tree[`${node.name}-${node.id}`]['id'] = node.id;
-        tree[`${node.name}-${node.id}`]['children'] = [];
+        subtrees.push({
+            ...currentParent,
+            children: childrenNodes,
+        });
     }
-    return tree;
-}
+    return subtrees;
+};
+
+const getRoot = (treeList) => {
+    var root = {children: Array, parent: Array};
+
+    for (let i = 0; i < treeList.length; i++) {
+        if (treeList[i].isRoot) {
+            root = treeList[i];
+        }
+    }
+    var clonedRoot = JSON.parse(JSON.stringify(root));
+    return clonedRoot;
+};
+
+const createTree = (treeList) => {
+    var root = getRoot(treeList);
+    console.log('root ', root);
+    var rootChildren = root.children;
+    //deepclone the root children
+    console.log('root children ', rootChildren);
+    for (let i = 0; i < rootChildren.length; i++) {
+        var currentChild = rootChildren[i];
+        console.log('current child ', currentChild);
+        if (currentChild.children.length > 0) {
+            try {
+                createTree(currentChild.children);
+            } catch (e) {
+                console.log('error ', e);
+            }
+        }
+    }
+};
+
+// const dummyNode = {
+//     name: "top-level-node",
+//     type: "COMPONENT",
+//     id: "top-level-node",
+//     children: [
+//         {
+//             name: "child-node-1",
+//             type: "COMPONENT",
+//             id: "child-node-1",
+//             parent: "top-level-node",
+//             children: [
+//                 {
+//                     name: "child-node-1-1",
+//                     type: "COMPONENT",
+//                     id: "grandchild-node-1",
+//                     parent: "child-node-1",
+//                     children: [
+//                         {
+//                             name: "child-node-1-1-1",
+//                             type: "COMPONENT",
+//                             id: "greatgrandchild-node-1",
+//                             parent: "grandchild-node-1",
+//                             children: []
+//                         }]
+//                 },
+//                 {
+//                     name: "child-node-1-2",
+//                     type: "COMPONENT",
+//                     id: "grandchild-node-2",
+//                     parent: "child-node-1",
+//                     children: []
+//                 }]
+//         },
+//         {
+//             name: "child-node-2",
+//             type: "COMPONENT",
+//             id: "child-node-2",
+//             parent: "top-level-node",
+//             children: []
+//         }
+//     ]
+// }
+
+// const parseTree = (node) => {
+//     let nodes = [];
+//     if (node.children) {
+//         for (let i = 0; i < node.children.length; i++) {
+//             nodes.push(node.children[i]);
+//             nodes = nodes.concat(parseTree(node.children[i]));
+//         }
+//     }
+//     return nodes;
+// }
 
 // function selectFirstChildOfNode(node: SceneNode) {
 //     // Don't forget to check that something is selected!
