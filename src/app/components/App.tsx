@@ -12,8 +12,15 @@ const App = ({}) => {
     }, []);
 
     const onCreate = () => {
-        const count = parseInt(textbox.current.value, 10);
-        parent.postMessage({pluginMessage: {type: 'create-rectangles', count}}, '*');
+        parent.postMessage({pluginMessage: {type: 'create-rectangles'}}, '*');
+    };
+
+    const onPost = () => {
+        try {
+            parent.postMessage({pluginMessage: {type: 'networkRequest'}}, '*');
+        } catch (e) {
+            console.log('posting error ', e);
+        }
     };
 
     const onCancel = () => {
@@ -39,6 +46,9 @@ const App = ({}) => {
             </p>
             <button id="create" onClick={onCreate}>
                 Create
+            </button>
+            <button id="create" onClick={onPost}>
+                Post
             </button>
             <button onClick={onCancel}>Cancel</button>
         </div>
