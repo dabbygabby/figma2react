@@ -16,6 +16,7 @@ figma.ui.onmessage = (msg) => {
                     id: child.parent.id,
                     name: child.parent.name,
                 },
+                type: child.type,
                 children: child.children === undefined ? [] : child.children,
             };
         });
@@ -23,12 +24,20 @@ figma.ui.onmessage = (msg) => {
         console.log('parsed nodes ', parsedNodes);
         var parentList = getAllParentValue(parsedNodes, node);
         console.log('parent list ', parentList);
+        var childlessList = getAllLeaves(parsedNodes);
+        console.log('childless list ', childlessList);
 
         var treeList = getParentTrees(parentList, parsedNodes);
         console.log('tree list ', treeList);
 
         var finalTree = createTree(treeList);
         console.log('tree ', finalTree);
+
+        for (let i = 0; i < childlessList.length; i++) {
+            let child = figma.currentPage.findOne((n) => n.id === childlessList[i].id);
+            var styles = getChildrenStyles(child);
+            console.log('styles ', child.name, styles);
+        }
 
         // This is how figma responds back to the ui
         figma.ui.postMessage({
@@ -51,10 +60,24 @@ function getNodes(node) {
     return nodes;
 }
 
+const getAllLeaves = (treeList) => {
+    var leaves = [];
+    for (let i = 0; i < treeList.length; i++) {
+        if (treeList[i]?.children.length === 0) {
+            leaves.push(treeList[i]);
+        }
+    }
+    return leaves;
+};
 const getAllParentValue = (nodeList, node) => {
-    let parentList = [{name: node.name, id: node.id, isRoot: true}];
+    let parentList = [{name: node.name, id: node.id, type: node.type, isRoot: true}];
     for (let i = 0; i < nodeList.length; i++) {
-        parentList.push({name: nodeList[i].parent.name, id: nodeList[i].parent.id, isRoot: false});
+        parentList.push({
+            name: nodeList[i].parent.name,
+            id: nodeList[i].parent.id,
+            type: nodeList[i].type,
+            isRoot: false,
+        });
     }
     //make a set of parent values
     var uniqueParents = uniqBy(parentList, 'id');
@@ -95,53 +118,53 @@ const createTree = (treeList) => {
     });
 };
 
-const dummyNode = {
-    name: 'top-level-node',
-    type: 'COMPONENT',
-    id: 'top-level-node',
-    children: [
-        {
-            name: 'child-node-1',
-            type: 'COMPONENT',
-            id: 'child-node-1',
-            parent: {
-                name: 'top-level-node',
-                id: 'top-level-node',
-            },
-            children: [
-                {
-                    name: 'child-node-1-1',
-                    type: 'COMPONENT',
-                    id: 'grandchild-node-1',
-                    parent: {name: 'child-node-1', id: 'child-node-1'},
-                    children: [
-                        {
-                            name: 'child-node-1-1-1',
-                            type: 'COMPONENT',
-                            id: 'greatgrandchild-node-1',
-                            parent: {name: 'child-node-1-1', id: 'grandchild-node-1'},
-                            children: [],
-                        },
-                    ],
-                },
-                {
-                    name: 'child-node-1-2',
-                    type: 'COMPONENT',
-                    id: 'grandchild-node-2',
-                    parent: {name: 'child-node-1', id: 'child-node-1'},
-                    children: [],
-                },
-            ],
-        },
-        {
-            name: 'child-node-2',
-            type: 'COMPONENT',
-            id: 'child-node-2',
-            parent: {name: 'top-level-node', id: 'top-level-node'},
-            children: [],
-        },
-    ],
-};
+// const dummyNode = {
+//     name: 'top-level-node',
+//     type: 'COMPONENT',
+//     id: 'top-level-node',
+//     children: [
+//         {
+//             name: 'child-node-1',
+//             type: 'COMPONENT',
+//             id: 'child-node-1',
+//             parent: {
+//                 name: 'top-level-node',
+//                 id: 'top-level-node',
+//             },
+//             children: [
+//                 {
+//                     name: 'child-node-1-1',
+//                     type: 'COMPONENT',
+//                     id: 'grandchild-node-1',
+//                     parent: { name: 'child-node-1', id: 'child-node-1' },
+//                     children: [
+//                         {
+//                             name: 'child-node-1-1-1',
+//                             type: 'COMPONENT',
+//                             id: 'greatgrandchild-node-1',
+//                             parent: { name: 'child-node-1-1', id: 'grandchild-node-1' },
+//                             children: [],
+//                         },
+//                     ],
+//                 },
+//                 {
+//                     name: 'child-node-1-2',
+//                     type: 'COMPONENT',
+//                     id: 'grandchild-node-2',
+//                     parent: { name: 'child-node-1', id: 'child-node-1' },
+//                     children: [],
+//                 },
+//             ],
+//         },
+//         {
+//             name: 'child-node-2',
+//             type: 'COMPONENT',
+//             id: 'child-node-2',
+//             parent: { name: 'top-level-node', id: 'top-level-node' },
+//             children: [],
+//         },
+//     ],
+// };
 
 // const parseTree = (node) => {
 //     let nodes = [];
@@ -168,18 +191,31 @@ const dummyNode = {
 //     }
 // }
 
-// const getChildrenStyles = (node: SceneNode) => {
-//     const fills = node.type === "COMPONENT" && node.fills
-//     // deepclone fills
-//     const fillsClone = JSON.parse(JSON.stringify(fills))
-//     const background = rgbToHex(fillsClone[0].color.r, fillsClone[0].color.g, fillsClone[0].color.b)
-//     const strokes = node.type === "COMPONENT" && node.strokes
-//     const effects = node.type === "COMPONENT" && node.effects
-//     const children = node.type === "COMPONENT" && node.children
-//     console.log("node", fillsClone, background, strokes, effects, children)
-// }
+const getChildrenStyles = (node: SceneNode) => {
+    const fills = node?.fills;
+    // deepclone fills
+    const fillsClone = JSON.parse(JSON.stringify(fills));
+    const background = rgbToHex(fillsClone[0]?.color.r, fillsClone[0]?.color.g, fillsClone[0]?.color.b);
+    const strokes = node?.strokes;
+    const effects = node?.effects;
+    const borderRadius = node?.cornerRadius;
+    // console.log("node", fillsClone, background, strokes, effects, children)
+    const style = {
+        fills: fillsClone,
+        background: background,
+        strokes: strokes,
+        effects: effects,
+        borderRadius: borderRadius,
+    };
+    return style;
+};
 
-// //function to convert rgb to hex
-// function rgbToHex(r: any, g: any, b: any) {
-//     return "#" + ((1 << 24) + (Math.round(255 * r) << 16) + (Math.round(255 * g) << 8) + Math.round(255 * b)).toString(16).slice(1);
-// }
+//function to convert rgb to hex
+function rgbToHex(r: any, g: any, b: any) {
+    return (
+        '#' +
+        ((1 << 24) + (Math.round(255 * r) << 16) + (Math.round(255 * g) << 8) + Math.round(255 * b))
+            .toString(16)
+            .slice(1)
+    );
+}
