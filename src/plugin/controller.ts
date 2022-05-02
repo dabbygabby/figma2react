@@ -77,7 +77,7 @@ const getParentTrees = (ParentList, nodeList) => {
     return subtrees;
 };
 
-const getRoot = (treeList) => {
+const getRoot = async (treeList) => {
     var root = {children: Array, parent: Array};
 
     for (let i = 0; i < treeList.length; i++) {
@@ -90,66 +90,58 @@ const getRoot = (treeList) => {
 };
 
 const createTree = (treeList) => {
-    var root = getRoot(treeList);
-    console.log('root ', root);
-    var rootChildren = root.children;
-    //deepclone the root children
-    console.log('root children ', rootChildren);
-    for (let i = 0; i < rootChildren.length; i++) {
-        var currentChild = rootChildren[i];
-        console.log('current child ', currentChild);
-        if (currentChild.children.length > 0) {
-            try {
-                createTree(currentChild.children);
-            } catch (e) {
-                console.log('error ', e);
-            }
-        }
-    }
+    getRoot(treeList).then((res) => {
+        console.log('root ', res);
+    });
 };
 
-// const dummyNode = {
-//     name: "top-level-node",
-//     type: "COMPONENT",
-//     id: "top-level-node",
-//     children: [
-//         {
-//             name: "child-node-1",
-//             type: "COMPONENT",
-//             id: "child-node-1",
-//             parent: "top-level-node",
-//             children: [
-//                 {
-//                     name: "child-node-1-1",
-//                     type: "COMPONENT",
-//                     id: "grandchild-node-1",
-//                     parent: "child-node-1",
-//                     children: [
-//                         {
-//                             name: "child-node-1-1-1",
-//                             type: "COMPONENT",
-//                             id: "greatgrandchild-node-1",
-//                             parent: "grandchild-node-1",
-//                             children: []
-//                         }]
-//                 },
-//                 {
-//                     name: "child-node-1-2",
-//                     type: "COMPONENT",
-//                     id: "grandchild-node-2",
-//                     parent: "child-node-1",
-//                     children: []
-//                 }]
-//         },
-//         {
-//             name: "child-node-2",
-//             type: "COMPONENT",
-//             id: "child-node-2",
-//             parent: "top-level-node",
-//             children: []
-//         }
-//     ]
-// }
+const dummyNode = {
+    name: 'top-level-node',
+    type: 'COMPONENT',
+    id: 'top-level-node',
+    children: [
+        {
+            name: 'child-node-1',
+            type: 'COMPONENT',
+            id: 'child-node-1',
+            parent: {
+                name: 'top-level-node',
+                id: 'top-level-node',
+            },
+            children: [
+                {
+                    name: 'child-node-1-1',
+                    type: 'COMPONENT',
+                    id: 'grandchild-node-1',
+                    parent: {name: 'child-node-1', id: 'child-node-1'},
+                    children: [
+                        {
+                            name: 'child-node-1-1-1',
+                            type: 'COMPONENT',
+                            id: 'greatgrandchild-node-1',
+                            parent: {name: 'child-node-1-1', id: 'grandchild-node-1'},
+                            children: [],
+                        },
+                    ],
+                },
+                {
+                    name: 'child-node-1-2',
+                    type: 'COMPONENT',
+                    id: 'grandchild-node-2',
+                    parent: {name: 'child-node-1', id: 'child-node-1'},
+                    children: [],
+                },
+            ],
+        },
+        {
+            name: 'child-node-2',
+            type: 'COMPONENT',
+            id: 'child-node-2',
+            parent: {name: 'top-level-node', id: 'top-level-node'},
+            children: [],
+        },
+    ],
+};
 
 // const parseTree = (node) => {
 //     let nodes = [];
